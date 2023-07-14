@@ -8,7 +8,7 @@ enum Play {
 }
 
 impl Play {
-    fn base_score(&self) -> usize {
+    fn score(&self) -> usize {
         match *self {
             Play::Rock => 1,
             Play::Paper => 2,
@@ -70,26 +70,22 @@ impl FromStr for Outcome {
 
 #[derive(Debug)]
 struct Round {
-    opponent_play: Play,
-    player_play: Play,
+    // opponent_play: Play,
+    // player_play: Play,
+    // outcome: Outcome,
+    score: RoundScore,
 }
 
 impl Round {
-    fn score(&self) -> RoundScore {
-        let player_outcome = match (&self.player_play, &self.opponent_play) {
-            (Play::Rock, Play::Rock) => Outcome::Draw,
-            (Play::Rock, Play::Paper) => Outcome::Loss,
-            (Play::Rock, Play::Scissors) => Outcome::Win,
-            (Play::Paper, Play::Rock) => Outcome::Win,
-            (Play::Paper, Play::Paper) => Outcome::Draw,
-            (Play::Paper, Play::Scissors) => Outcome::Loss,
-            (Play::Scissors, Play::Rock) => Outcome::Loss,
-            (Play::Scissors, Play::Paper) => Outcome::Win,
-            (Play::Scissors, Play::Scissors) => Outcome::Draw,
-        };
-        RoundScore {
-            player_score: &self.player_play.base_score() + player_outcome.score(),
-            opponent_score: self.opponent_play.base_score() + player_outcome.reverse_score(),
+    fn new(opponent_play: Play, player_play: Play, outcome: Outcome) -> Round {
+        Round {
+            score: RoundScore {
+                player_score: player_play.score() + outcome.score(),
+                opponent_score: opponent_play.score() + outcome.reverse_score(),
+            },
+            // opponent_play,
+            // player_play,
+            // outcome,
         }
     }
 
@@ -116,10 +112,7 @@ impl FromStr for Round {
         let opponent_play = Play::from_str(opponent).unwrap();
         let outcome = Outcome::from_str(outcome).unwrap();
         let player_play = Round::resolve_player_play(&opponent_play, &outcome);
-        return Ok(Round {
-            opponent_play,
-            player_play,
-        });
+        return Ok(Round::new(opponent_play, player_play, outcome));
     }
 }
 
@@ -135,16 +128,12 @@ struct Game {
 }
 
 impl Game {
-    fn round_scores(&self) -> Vec<RoundScore> {
-        self.rounds.iter().map(|round| round.score()).collect()
-    }
-
     fn player_score(&self) -> usize {
-        self.round_scores().iter().map(|r| r.player_score).sum()
+        self.rounds.iter().map(|r| r.score.player_score).sum()
     }
 
     fn opponent_score(&self) -> usize {
-        self.round_scores().iter().map(|r| r.opponent_score).sum()
+        self.rounds.iter().map(|r| r.score.opponent_score).sum()
     }
 }
 
