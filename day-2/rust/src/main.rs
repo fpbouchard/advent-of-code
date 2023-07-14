@@ -22,9 +22,9 @@ impl FromStr for Play {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "A" | "X" => Ok(Play::Rock),
-            "B" | "Y" => Ok(Play::Paper),
-            "C" | "Z" => Ok(Play::Scissors),
+            "A" => Ok(Play::Rock),
+            "B" => Ok(Play::Paper),
+            "C" => Ok(Play::Scissors),
             _ => Err(()),
         }
     }
@@ -55,6 +55,19 @@ impl Outcome {
     }
 }
 
+impl FromStr for Outcome {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "X" => Ok(Outcome::Loss),
+            "Y" => Ok(Outcome::Draw),
+            "Z" => Ok(Outcome::Win),
+            _ => Err(()),
+        }
+    }
+}
+
 #[derive(Debug)]
 struct Round {
     opponent_play: Play,
@@ -75,8 +88,22 @@ impl Round {
             (Play::Scissors, Play::Scissors) => Outcome::Draw,
         };
         RoundScore {
-            player_score: self.player_play.base_score() + player_outcome.score(),
+            player_score: &self.player_play.base_score() + player_outcome.score(),
             opponent_score: self.opponent_play.base_score() + player_outcome.reverse_score(),
+        }
+    }
+
+    fn resolve_player_play(opponent_play: &Play, outcome: &Outcome) -> Play {
+        match (opponent_play, outcome) {
+            (Play::Rock, Outcome::Loss) => Play::Scissors,
+            (Play::Rock, Outcome::Draw) => Play::Rock,
+            (Play::Rock, Outcome::Win) => Play::Paper,
+            (Play::Paper, Outcome::Loss) => Play::Rock,
+            (Play::Paper, Outcome::Draw) => Play::Paper,
+            (Play::Paper, Outcome::Win) => Play::Scissors,
+            (Play::Scissors, Outcome::Loss) => Play::Paper,
+            (Play::Scissors, Outcome::Draw) => Play::Scissors,
+            (Play::Scissors, Outcome::Win) => Play::Rock,
         }
     }
 }
@@ -85,10 +112,13 @@ impl FromStr for Round {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (opponent, player) = s.split_once(' ').unwrap();
+        let (opponent, outcome) = s.split_once(' ').unwrap();
+        let opponent_play = Play::from_str(opponent).unwrap();
+        let outcome = Outcome::from_str(outcome).unwrap();
+        let player_play = Round::resolve_player_play(&opponent_play, &outcome);
         return Ok(Round {
-            opponent_play: Play::from_str(opponent).unwrap(),
-            player_play: Play::from_str(player).unwrap(),
+            opponent_play,
+            player_play,
         });
     }
 }
@@ -137,6 +167,6 @@ fn load_data() -> String {
 
 fn main() {
     let game = Game::from_str(&load_data()).unwrap();
-    println!("{:?}", game.player_score());
-    println!("{:?}", game.opponent_score());
+    println!("player_score: {:?}", game.player_score());
+    println!("opponent_score: {:?}", game.opponent_score());
 }
